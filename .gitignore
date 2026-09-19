@@ -1,0 +1,7 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+sent_emails/
+chroma_db/
+

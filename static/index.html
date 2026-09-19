@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acme Corp | HR Policy Assistant</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Marked.js for Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Markdown styling inside chat messages */
+    .prose-custom p { margin-bottom: 0.75rem; }
+    .prose-custom p:last-child { margin-bottom: 0; }
+    .prose-custom h2, .prose-custom h3 { font-weight: 700; color: #0f172a; margin-top: 1rem; margin-bottom: 0.5rem; }
+    .prose-custom ul { list-style-type: disc; margin-left: 1.25rem; margin-bottom: 0.75rem; }
+    .prose-custom ol { list-style-type: decimal; margin-left: 1.25rem; margin-bottom: 0.75rem; }
+    .prose-custom li { margin-bottom: 0.25rem; }
+    .prose-custom strong { font-weight: 600; color: #1e293b; }
+    .prose-custom blockquote {
+      border-left: 3px solid #3b82f6;
+      padding-left: 0.75rem;
+      color: #475569;
+      font-style: italic;
+      background: #f8fafc;
+      padding-top: 0.25rem;
+      padding-bottom: 0.25rem;
+      margin: 0.5rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* Pulsing dots */
+    .dot-flashing {
+      position: relative; width: 8px; height: 8px;
+      border-radius: 5px; background-color: #3b82f6;
+      animation: dot-flashing 1s infinite linear alternate;
+      animation-delay: 0.5s;
+    }
+    .dot-flashing::before, .dot-flashing::after {
+      content: ""; display: inline-block; position: absolute; top: 0;
+      width: 8px; height: 8px; border-radius: 5px; background-color: #3b82f6;
+      animation: dot-flashing 1s infinite alternate;
+    }
+    .dot-flashing::before { left: -14px; animation-delay: 0s; }
+    .dot-flashing::after  { left: 14px;  animation-delay: 1s; }
+    @keyframes dot-flashing {
+      0% { background-color: #3b82f6; }
+      50%, 100% { background-color: #bfdbfe; }
+    }
+
+    /* Drop zone highlight */
+    #drop-zone.drag-over {
+      border-color: #6366f1;
+      background-color: #eef2ff;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen flex flex-col font-sans overflow-hidden">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-sm shrink-0">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold text-xl shadow-md">A</div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="font-bold text-slate-900 text-lg tracking-tight">Acme Corp HR Support</h1>
+          <span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-indigo-200">Agentic AI</span>
+        </div>
+        <p class="text-xs text-slate-500">ChromaDB Vector Search &bull; MCP &bull; Google Antigravity SDK</p>
+      </div>
+    </div>
+
+    <!-- Status Badges -->
+    <div class="flex items-center space-x-3 text-xs">
+      <div id="vdb-badge" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 font-medium">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span id="vdb-text">VectorDB: Loading...</span>
+      </div>
+
+      <div id="mcp-badge" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="mcp-text">MCP: Connected</span>
+      </div>
+
+      <div id="smtp-badge" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+        </svg>
+        <span id="smtp-text">Email: Loading...</span>
+      </div>
+
+      <button id="btn-reset" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium transition" title="Start a fresh conversation">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span>Reset Chat</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- Left Sidebar -->
+    <aside class="w-80 bg-white border-r border-slate-200 flex flex-col justify-between p-4 hidden md:flex overflow-y-auto">
+      <div class="space-y-5">
+
+        <!-- ── Import Documents Panel ── -->
+        <div>
+          <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Import Policy Documents</h2>
+
+          <!-- Drop zone -->
+          <div
+            id="drop-zone"
+            class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition"
+          >
+            <div class="flex flex-col items-center space-y-1 pointer-events-none">
+              <svg class="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p class="text-xs text-slate-500 font-medium">Drop files here or click to browse</p>
+              <p class="text-[10px] text-slate-400">.md and .txt supported</p>
+            </div>
+            <input id="file-input" type="file" multiple accept=".md,.txt" class="hidden" />
+          </div>
+
+          <!-- Selected files preview -->
+          <div id="selected-files" class="mt-2 space-y-1 hidden"></div>
+
+          <!-- Import button -->
+          <button
+            id="btn-import"
+            class="mt-2.5 w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition flex items-center justify-center space-x-1.5 hidden"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+            </svg>
+            <span id="btn-import-label">Import into Vector DB</span>
+          </button>
+
+          <!-- Import results -->
+          <div id="import-results" class="mt-2 space-y-1 text-xs"></div>
+        </div>
+
+        <!-- ── Indexed Policy Documents ── -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Indexed in Vector DB</h2>
+            <button id="btn-refresh-policies" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Refresh</button>
+          </div>
+          <div id="policy-list" class="space-y-1.5 text-xs">
+            <p class="text-slate-400 italic">No documents indexed yet.</p>
+          </div>
+        </div>
+
+        <!-- ── Quick Prompts ── -->
+        <div>
+          <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Suggested Questions</h2>
+          <div class="space-y-2">
+            <button class="quick-chip w-full text-left p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 text-xs text-slate-700 font-medium transition flex items-start space-x-2">
+              <span class="text-indigo-500 mt-0.5">💬</span>
+              <span>How many weeks of parental leave do I get as a primary caregiver?</span>
+            </button>
+            <button class="quick-chip w-full text-left p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 text-xs text-slate-700 font-medium transition flex items-start space-x-2">
+              <span class="text-indigo-500 mt-0.5">💻</span>
+              <span>What equipment stipend is available for remote work?</span>
+            </button>
+            <button class="quick-chip w-full text-left p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 text-xs text-slate-700 font-medium transition flex items-start space-x-2">
+              <span class="text-indigo-500 mt-0.5">🏖️</span>
+              <span>How many unused PTO days can I carry over to next year?</span>
+            </button>
+            <button class="quick-chip w-full text-left p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 text-xs text-slate-700 font-medium transition flex items-start space-x-2">
+              <span class="text-indigo-500 mt-0.5">🏥</span>
+              <span>Explain our medical and mental health counseling benefits.</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Dispatched Emails ── -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dispatched Emails</h2>
+            <button id="btn-refresh-emails" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Refresh</button>
+          </div>
+          <div id="email-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs">
+            <p class="text-slate-400 italic">No emails dispatched yet.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="pt-4 border-t border-slate-200 text-slate-400 text-[11px] leading-relaxed">
+        Semantic search via <code class="text-slate-600 bg-slate-100 px-1 py-0.5 rounded">ChromaDB</code> +
+        <code class="text-slate-600 bg-slate-100 px-1 py-0.5 rounded">gemini-embedding-2</code>.
+        FastMCP tools: <code class="text-slate-600 bg-slate-100 px-1 py-0.5 rounded">search_policies</code>,
+        <code class="text-slate-600 bg-slate-100 px-1 py-0.5 rounded">send_policy_email</code>.
+      </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <main class="flex-1 flex flex-col bg-white overflow-hidden relative">
+
+      <!-- Messages List -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-6">
+
+        <!-- Welcome Message -->
+        <div class="flex items-start space-x-3.5 max-w-2xl">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white text-sm font-bold shadow shrink-0">HR</div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm text-sm text-slate-800">
+            <p class="font-semibold text-slate-900 mb-1">Hello! Welcome to Acme Corp HR Support.</p>
+            <p class="text-slate-600 leading-relaxed">
+              I am your dedicated HR Support Agent powered by <strong>ChromaDB semantic search</strong> and the
+              <strong>Model Context Protocol (MCP)</strong>.
+            </p>
+            <p class="text-slate-600 mt-2 leading-relaxed">
+              Use the <strong>Import Documents</strong> panel on the left to load your HR policy files into
+              the vector database, then ask me anything. I can also
+              <strong>send an email summary directly to your inbox</strong>.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Typing Indicator -->
+      <div id="typing-indicator" class="hidden px-6 py-2.5 flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-xl bg-indigo-500 flex items-center justify-center text-white text-xs font-bold shrink-0">HR</div>
+        <div class="bg-slate-100 border border-slate-200 rounded-2xl px-5 py-3 flex items-center space-x-3">
+          <div class="dot-flashing"></div>
+          <span class="text-xs text-slate-500 ml-4 font-medium">Searching vector DB & consulting HR policy via MCP...</span>
+        </div>
+      </div>
+
+      <!-- Chat Input Bar -->
+      <div class="p-4 border-t border-slate-200 bg-slate-50 shrink-0">
+        <form id="chat-form" class="max-w-4xl mx-auto flex items-center space-x-3">
+          <input
+            id="chat-input"
+            type="text"
+            placeholder="Type your HR question or ask to send an email summary..."
+            class="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm shadow-sm transition"
+            autocomplete="off"
+          />
+          <button
+            id="send-btn"
+            type="submit"
+            class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-sm hover:shadow transition flex items-center space-x-2 shrink-0 disabled:opacity-50"
+          >
+            <span>Ask</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+        </form>
+        <p class="text-[11px] text-center text-slate-400 mt-2">
+          Responses are grounded in policy documents indexed in the ChromaDB vector database.
+        </p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Email Modal -->
+  <div id="email-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div>
+          <h3 id="modal-subject" class="font-bold text-slate-900 text-base">Email Subject</h3>
+          <p id="modal-meta" class="text-xs text-slate-500">To: recipient@company.com &bull; Date</p>
+        </div>
+        <button id="modal-close" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">&times;</button>
+      </div>
+      <div id="modal-body" class="p-6 overflow-y-auto text-sm text-slate-700 whitespace-pre-wrap font-mono leading-relaxed bg-slate-50/50 flex-1">
+        Email body content...
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    const chatMessages    = document.getElementById("chat-messages");
+    const chatForm        = document.getElementById("chat-form");
+    const chatInput       = document.getElementById("chat-input");
+    const sendBtn         = document.getElementById("send-btn");
+    const typingIndicator = document.getElementById("typing-indicator");
+    const btnReset        = document.getElementById("btn-reset");
+    const emailList       = document.getElementById("email-list");
+    const btnRefreshEmails   = document.getElementById("btn-refresh-emails");
+    const btnRefreshPolicies = document.getElementById("btn-refresh-policies");
+    const policyList      = document.getElementById("policy-list");
+
+    // Import-related elements
+    const dropZone        = document.getElementById("drop-zone");
+    const fileInput       = document.getElementById("file-input");
+    const selectedFiles   = document.getElementById("selected-files");
+    const btnImport       = document.getElementById("btn-import");
+    const btnImportLabel  = document.getElementById("btn-import-label");
+    const importResults   = document.getElementById("import-results");
+
+    // Modal elements
+    const emailModal   = document.getElementById("email-modal");
+    const modalSubject = document.getElementById("modal-subject");
+    const modalMeta    = document.getElementById("modal-meta");
+    const modalBody    = document.getElementById("modal-body");
+    const modalClose   = document.getElementById("modal-close");
+
+    // Currently staged files for upload
+    let stagedFiles = [];
+
+    // ──────────────────────────────────────────────
+    // Status loading
+    // ──────────────────────────────────────────────
+    async function loadStatus() {
+      try {
+        const res  = await fetch("/api/status");
+        const data = await res.json();
+
+        // SMTP badge
+        const smtpBadge = document.getElementById("smtp-badge");
+        const smtpText  = document.getElementById("smtp-text");
+        if (data.smtp_configured) {
+          smtpBadge.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium";
+          smtpText.textContent = `Email: Live SMTP (${data.smtp_host})`;
+        } else {
+          smtpBadge.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium";
+          smtpText.textContent = "Email: Archive Mode (Configure SMTP in .env)";
+        }
+
+        // Vector DB badge
+        const vdbBadge = document.getElementById("vdb-badge");
+        const vdbText  = document.getElementById("vdb-text");
+        if (data.vector_db_ready) {
+          const docCount = data.ingested_document_count || 0;
+          vdbBadge.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium";
+          vdbText.textContent = `VectorDB: ${docCount} doc${docCount !== 1 ? "s" : ""} indexed`;
+        } else {
+          vdbBadge.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium";
+          vdbText.textContent = "VectorDB: Not ready";
+        }
+      } catch (err) {
+        console.error("Failed to load status:", err);
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // Load indexed policies from vector DB
+    // ──────────────────────────────────────────────
+    async function loadPolicies() {
+      try {
+        const res  = await fetch("/api/policies");
+        const data = await res.json();
+        policyList.innerHTML = "";
+
+        if (!data.policies || data.policies.length === 0) {
+          policyList.innerHTML = `<p class="text-slate-400 italic">No documents indexed yet. Use Import above.</p>`;
+          return;
+        }
+
+        data.policies.forEach((doc) => {
+          const item = document.createElement("div");
+          item.className = "flex items-center justify-between p-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 group";
+          item.innerHTML = `
+            <div class="flex items-center space-x-2 min-w-0">
+              <span class="shrink-0">📄</span>
+              <div class="min-w-0">
+                <div class="font-medium truncate text-xs">${doc.filename || doc.doc_name}</div>
+                <div class="text-[10px] text-slate-400">${doc.chunk_count} chunk${doc.chunk_count !== 1 ? "s" : ""}</div>
+              </div>
+            </div>
+            <button
+              class="delete-doc-btn shrink-0 ml-1 text-slate-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100"
+              data-doc="${doc.doc_name}"
+              title="Remove from vector DB"
+            >
+              <svg class="w-3.5 h-3.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          `;
+          policyList.appendChild(item);
+        });
+
+        // Wire up delete buttons
+        document.querySelectorAll(".delete-doc-btn").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const docName = btn.dataset.doc;
+            if (!confirm(`Remove "${docName}" from the vector database?`)) return;
+            try {
+              const r = await fetch(`/api/documents/${encodeURIComponent(docName)}`, { method: "DELETE" });
+              const d = await r.json();
+              showImportResult(`🗑️ Removed "${docName}" (${d.chunks_removed} chunks)`, "info");
+              loadPolicies();
+              loadStatus();
+            } catch (e) {
+              showImportResult(`❌ Failed to remove "${docName}": ${e.message}`, "error");
+            }
+          });
+        });
+      } catch (err) {
+        console.error("Failed to load policies:", err);
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // Email list
+    // ──────────────────────────────────────────────
+    async function loadEmails() {
+      try {
+        const res  = await fetch("/api/emails");
+        const data = await res.json();
+        emailList.innerHTML = "";
+
+        if (!data.emails || data.emails.length === 0) {
+          emailList.innerHTML = `<p class="text-slate-400 italic">No emails dispatched yet.</p>`;
+          return;
+        }
+
+        data.emails.forEach((em) => {
+          const item = document.createElement("div");
+          item.className = "p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-indigo-300 cursor-pointer transition";
+          item.innerHTML = `
+            <div class="font-semibold text-slate-800 truncate">${em.headers.subject || em.filename}</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">To: ${em.headers.to || "Unknown"}</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">${em.headers.timestamp || ""}</div>
+          `;
+          item.addEventListener("click", () => {
+            modalSubject.textContent = em.headers.subject || em.filename;
+            modalMeta.textContent    = `To: ${em.headers.to || "Unknown"} • ${em.headers.timestamp || ""}`;
+            modalBody.textContent    = em.body;
+            emailModal.classList.remove("hidden");
+          });
+          emailList.appendChild(item);
+        });
+      } catch (err) {
+        console.error("Failed to fetch emails:", err);
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // File drop / pick handling
+    // ──────────────────────────────────────────────
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("drag-over");
+    });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-over");
+      handleFileSelection(Array.from(e.dataTransfer.files));
+    });
+
+    fileInput.addEventListener("change", () => {
+      handleFileSelection(Array.from(fileInput.files));
+      fileInput.value = ""; // reset so same file can be re-selected
+    });
+
+    function handleFileSelection(files) {
+      const allowed = files.filter(f => /\.(md|txt)$/i.test(f.name));
+      const rejected = files.filter(f => !/\.(md|txt)$/i.test(f.name));
+
+      if (rejected.length) {
+        showImportResult(`⚠️ Skipped ${rejected.length} unsupported file(s). Only .md and .txt are accepted.`, "warn");
+      }
+      if (!allowed.length) return;
+
+      // Merge with existing staged files (deduplicate by name)
+      allowed.forEach(f => {
+        if (!stagedFiles.find(s => s.name === f.name)) stagedFiles.push(f);
+      });
+
+      renderStagedFiles();
+    }
+
+    function renderStagedFiles() {
+      if (!stagedFiles.length) {
+        selectedFiles.classList.add("hidden");
+        btnImport.classList.add("hidden");
+        return;
+      }
+
+      selectedFiles.classList.remove("hidden");
+      btnImport.classList.remove("hidden");
+      selectedFiles.innerHTML = stagedFiles.map((f, i) => `
+        <div class="flex items-center justify-between px-2 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-xs">
+          <span class="truncate text-indigo-700 font-medium">${f.name}</span>
+          <button class="remove-staged ml-1 text-indigo-400 hover:text-red-500" data-idx="${i}" title="Remove">✕</button>
+        </div>
+      `).join("");
+
+      document.querySelectorAll(".remove-staged").forEach(btn => {
+        btn.addEventListener("click", () => {
+          stagedFiles.splice(parseInt(btn.dataset.idx), 1);
+          renderStagedFiles();
+        });
+      });
+
+      btnImportLabel.textContent = `Import ${stagedFiles.length} file${stagedFiles.length !== 1 ? "s" : ""} into Vector DB`;
+    }
+
+    // ──────────────────────────────────────────────
+    // Import button handler
+    // ──────────────────────────────────────────────
+    btnImport.addEventListener("click", async () => {
+      if (!stagedFiles.length) return;
+
+      btnImport.disabled = true;
+      btnImportLabel.textContent = "Importing…";
+      importResults.innerHTML = "";
+
+      const formData = new FormData();
+      stagedFiles.forEach(f => formData.append("files", f));
+
+      try {
+        const res  = await fetch("/api/import-documents", { method: "POST", body: formData });
+        const data = await res.json();
+
+        (data.results || []).forEach(r => {
+          if (r.status === "success") {
+            showImportResult(`✅ ${r.filename} — ${r.chunks_added} chunks indexed`, "success");
+          } else if (r.status === "skipped") {
+            showImportResult(`⚠️ ${r.filename} — skipped: ${r.reason}`, "warn");
+          } else {
+            showImportResult(`❌ ${r.filename} — ${r.reason || "unknown error"}`, "error");
+          }
+        });
+
+        stagedFiles = [];
+        renderStagedFiles();
+        loadPolicies();
+        loadStatus();
+      } catch (err) {
+        showImportResult(`❌ Upload failed: ${err.message}`, "error");
+      } finally {
+        btnImport.disabled = false;
+        btnImportLabel.textContent = "Import into Vector DB";
+      }
+    });
+
+    function showImportResult(msg, type) {
+      const colors = {
+        success: "bg-emerald-50 border-emerald-200 text-emerald-700",
+        warn:    "bg-amber-50 border-amber-200 text-amber-700",
+        error:   "bg-red-50 border-red-200 text-red-700",
+        info:    "bg-slate-50 border-slate-200 text-slate-600",
+      };
+      const div = document.createElement("div");
+      div.className = `px-2 py-1.5 rounded-lg border text-xs ${colors[type] || colors.info}`;
+      div.textContent = msg;
+      importResults.appendChild(div);
+
+      // Auto-clear after 8 s
+      setTimeout(() => div.remove(), 8000);
+    }
+
+    // ──────────────────────────────────────────────
+    // Chat
+    // ──────────────────────────────────────────────
+    function appendMessage(sender, text) {
+      const isUser = sender === "user";
+      const wrap   = document.createElement("div");
+      wrap.className = `flex items-start space-x-3.5 max-w-2xl ${isUser ? "ml-auto flex-row-reverse space-x-reverse" : ""}`;
+
+      const avatar = document.createElement("div");
+      avatar.className = `w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shadow shrink-0 ${
+        isUser ? "bg-slate-700" : "bg-gradient-to-tr from-indigo-600 to-blue-500"
+      }`;
+      avatar.textContent = isUser ? "You" : "HR";
+
+      const bubble = document.createElement("div");
+      bubble.className = `rounded-2xl p-4 shadow-sm text-sm ${
+        isUser
+          ? "bg-indigo-600 text-white rounded-tr-none"
+          : "bg-slate-50 border border-slate-200 text-slate-800 rounded-tl-none prose-custom"
+      }`;
+      if (isUser) {
+        bubble.textContent = text;
+      } else {
+        bubble.innerHTML = marked.parse(text);
+      }
+
+      wrap.appendChild(avatar);
+      wrap.appendChild(bubble);
+      chatMessages.appendChild(wrap);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+
+      appendMessage("user", msg);
+      chatInput.value    = "";
+      chatInput.disabled = true;
+      sendBtn.disabled   = true;
+      typingIndicator.classList.remove("hidden");
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      try {
+        const res  = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg }),
+        });
+        const data = await res.json();
+        typingIndicator.classList.add("hidden");
+        appendMessage("agent", data.response || "No response received.");
+        loadEmails();
+      } catch (err) {
+        typingIndicator.classList.add("hidden");
+        appendMessage("agent", `⚠️ Network error: ${err.message}`);
+      } finally {
+        chatInput.disabled = false;
+        sendBtn.disabled   = false;
+        chatInput.focus();
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    });
+
+    // Quick chips
+    document.querySelectorAll(".quick-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        chatInput.value = chip.querySelector("span:last-child").textContent;
+        chatForm.dispatchEvent(new Event("submit"));
+      });
+    });
+
+    // Reset Chat
+    btnReset.addEventListener("click", async () => {
+      if (confirm("Clear conversation history and start a fresh session?")) {
+        await fetch("/api/reset", { method: "POST" });
+        chatMessages.innerHTML = `
+          <div class="flex items-start space-x-3.5 max-w-2xl">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white text-sm font-bold shadow shrink-0">HR</div>
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm text-sm text-slate-800">
+              <p class="font-semibold text-slate-900 mb-1">New session started!</p>
+              <p class="text-slate-600 leading-relaxed">How can I assist you with Acme Corp HR policies today?</p>
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    // Modal
+    modalClose.addEventListener("click", () => emailModal.classList.add("hidden"));
+    emailModal.addEventListener("click", (e) => {
+      if (e.target === emailModal) emailModal.classList.add("hidden");
+    });
+
+    btnRefreshEmails.addEventListener("click", loadEmails);
+    btnRefreshPolicies.addEventListener("click", () => { loadPolicies(); loadStatus(); });
+
+    // Initial load
+    loadStatus();
+    loadPolicies();
+    loadEmails();
+  </script>
+</body>
+</html>
